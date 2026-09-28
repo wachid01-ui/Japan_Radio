@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +32,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
@@ -62,58 +63,63 @@ fun JapanRadioScreen() {
 
     LaunchedEffect(Unit) {
 
-        Thread {
-            try {
+        try {
+            val stationList = withContext(Dispatchers.IO) {
+
                 val url = URL(
                     "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=100"
                 )
 
                 val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
 
-                val response = connection.inputStream
-                    .bufferedReader()
-                    .use { it.readText() }
+                try {
+                    connection.requestMethod = "GET"
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
 
-                val jsonArray = JSONArray(response)
+                    val response = connection.inputStream
+                        .bufferedReader()
+                        .use { it.readText() }
 
-                val stationList = mutableListOf<RadioStation>()
+                    val jsonArray = JSONArray(response)
+                    val result = mutableListOf<RadioStation>()
 
-                for (i in 0 until jsonArray.length()) {
+                    for (i in 0 until jsonArray.length()) {
 
-                    val station = jsonArray.getJSONObject(i)
+                        val station = jsonArray.getJSONObject(i)
 
-                    val name = station.optString("name")
-                    val streamUrl = station.optString("url_resolved")
-                    val favicon = station.optString("favicon")
+                        val name = station.optString("name")
+                        val streamUrl = station.optString("url_resolved")
+                        val favicon = station.optString("favicon")
 
-                    if (name.isNotBlank() && streamUrl.isNotBlank()) {
-                        stationList.add(
-                            RadioStation(
-                                name = name,
-                                streamUrl = streamUrl,
-                                favicon = favicon
+                        if (name.isNotBlank() && streamUrl.isNotBlank()) {
+                            result.add(
+                                RadioStation(
+                                    name = name,
+                                    streamUrl = streamUrl,
+                                    favicon = favicon
+                                )
                             )
-                        )
+                        }
                     }
-                }
 
-                runOnUiThread {
-                    radios = stationList
-                    isLoading = false
-                }
+                    result
 
-                connection.disconnect()
-
-            } catch (e: Exception) {
-
-                runOnUiThread {
-                    isLoading = false
+                } finally {
+                    connection.disconnect()
                 }
             }
-        }.start()
+
+            radios = stationList
+
+        } catch (e: Exception) {
+
+            radios = emptyList()
+
+        } finally {
+
+            isLoading = false
+        }
     }
 
     Column(
@@ -160,7 +166,6 @@ fun JapanRadioScreen() {
             ) {
 
                 items(radios) { radio ->
-
                     RadioCard(radio)
                 }
             }
