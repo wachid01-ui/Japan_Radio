@@ -24,8 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,10 +61,12 @@ fun JapanRadioScreen() {
 
     var radios by remember { mutableStateOf<List<RadioStation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
 
         try {
+
             val stationList = withContext(Dispatchers.IO) {
 
                 val url = URL(
@@ -73,27 +75,38 @@ fun JapanRadioScreen() {
 
                 val connection = url.openConnection() as HttpURLConnection
 
+                connection.connectTimeout = 15000
+                connection.readTimeout = 15000
+                connection.requestMethod = "GET"
+
                 try {
-                    connection.requestMethod = "GET"
-                    connection.connectTimeout = 10000
-                    connection.readTimeout = 10000
+
+                    val responseCode = connection.responseCode
+
+                    if (responseCode != HttpURLConnection.HTTP_OK) {
+                        throw Exception("HTTP $responseCode")
+                    }
 
                     val response = connection.inputStream
                         .bufferedReader()
                         .use { it.readText() }
 
                     val jsonArray = JSONArray(response)
+
                     val result = mutableListOf<RadioStation>()
 
                     for (i in 0 until jsonArray.length()) {
 
                         val station = jsonArray.getJSONObject(i)
 
-                        val name = station.optString("name")
-                        val streamUrl = station.optString("url_resolved")
-                        val favicon = station.optString("favicon")
+                        val name = station.optString("name").trim()
+                        val streamUrl = station.optString("url_resolved").trim()
+                        val favicon = station.optString("favicon").trim()
 
-                        if (name.isNotBlank() && streamUrl.isNotBlank()) {
+                        if (
+                            name.isNotEmpty() &&
+                            streamUrl.isNotEmpty()
+                        ) {
                             result.add(
                                 RadioStation(
                                     name = name,
@@ -115,7 +128,7 @@ fun JapanRadioScreen() {
 
         } catch (e: Exception) {
 
-            radios = emptyList()
+            errorMessage = e.message ?: "Unknown error"
 
         } finally {
 
@@ -141,37 +154,79 @@ fun JapanRadioScreen() {
             textAlign = TextAlign.Center
         )
 
-        if (isLoading) {
+        when {
 
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
+            isLoading -> {
 
-                CircularProgressIndicator()
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    CircularProgressIndicator()
 
-                Text("Loading radio stations...")
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text("Loading radio stations...")
+                }
             }
 
-        } else {
+            errorMessage.isNotEmpty() -> {
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
 
-                items(
-                 items = radios,
-                 key = { radio -> radio.streamUrl }
-                  ) { radio ->
-                RadioCard(radio)
-}
+                    Text(
+                        text = "Failed to load radio stations",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = errorMessage,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            radios.isEmpty() -> {
+
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+
+                    Text("No radio stations found.")
+                }
+            }
+
+            else -> {
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+
+                    items(
+                        items = radios,
+                        key = { radio -> radio.streamUrl }
+                    ) { radio ->
+
+                        RadioCard(radio)
+                    }
+                }
             }
         }
     }
@@ -194,7 +249,7 @@ fun RadioCard(radio: RadioStation) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            if (radio.favicon.isNotBlank()) {
+            if (radio.favicon.isNotEmpty()) {
 
                 AsyncImage(
                     model = radio.favicon,
