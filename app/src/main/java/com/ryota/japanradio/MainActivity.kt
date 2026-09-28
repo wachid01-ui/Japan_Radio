@@ -3,7 +3,6 @@ package com.ryota.japanradio
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,19 +17,30 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import org.json.JSONArray
+import java.net.HttpURLConnection
+import java.net.URL
 
 data class RadioStation(
     val name: String,
-    val logoRes: Int
+    val streamUrl: String,
+    val favicon: String
 )
 
 class MainActivity : ComponentActivity() {
@@ -47,17 +57,64 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun JapanRadioScreen() {
 
-    val radios = listOf(
-        RadioStation("Tokyo FM", android.R.drawable.ic_media_play),
-        RadioStation("J-WAVE", android.R.drawable.ic_media_play),
-        RadioStation("Radio Osaka", android.R.drawable.ic_media_play),
-        RadioStation("FM Yokohama", android.R.drawable.ic_media_play),
-        RadioStation("NHK Radio", android.R.drawable.ic_media_play),
-        RadioStation("ZIP-FM", android.R.drawable.ic_media_play),
-        RadioStation("FM802", android.R.drawable.ic_media_play),
-        RadioStation("InterFM", android.R.drawable.ic_media_play),
-        RadioStation("BayFM", android.R.drawable.ic_media_play)
-    )
+    var radios by remember { mutableStateOf<List<RadioStation>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+
+        Thread {
+            try {
+                val url = URL(
+                    "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=100"
+                )
+
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+
+                val response = connection.inputStream
+                    .bufferedReader()
+                    .use { it.readText() }
+
+                val jsonArray = JSONArray(response)
+
+                val stationList = mutableListOf<RadioStation>()
+
+                for (i in 0 until jsonArray.length()) {
+
+                    val station = jsonArray.getJSONObject(i)
+
+                    val name = station.optString("name")
+                    val streamUrl = station.optString("url_resolved")
+                    val favicon = station.optString("favicon")
+
+                    if (name.isNotBlank() && streamUrl.isNotBlank()) {
+                        stationList.add(
+                            RadioStation(
+                                name = name,
+                                streamUrl = streamUrl,
+                                favicon = favicon
+                            )
+                        )
+                    }
+                }
+
+                runOnUiThread {
+                    radios = stationList
+                    isLoading = false
+                }
+
+                connection.disconnect()
+
+            } catch (e: Exception) {
+
+                runOnUiThread {
+                    isLoading = false
+                }
+            }
+        }.start()
+    }
 
     Column(
         modifier = Modifier
@@ -77,17 +134,35 @@ fun JapanRadioScreen() {
             textAlign = TextAlign.Center
         )
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        if (isLoading) {
 
-            items(radios) { radio ->
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
 
-                RadioCard(radio)
+                CircularProgressIndicator()
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text("Loading radio stations...")
+            }
+
+        } else {
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(3),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+
+                items(radios) { radio ->
+
+                    RadioCard(radio)
+                }
             }
         }
     }
@@ -110,11 +185,24 @@ fun RadioCard(radio: RadioStation) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            Image(
-                painter = painterResource(id = radio.logoRes),
-                contentDescription = radio.name,
-                modifier = Modifier.size(65.dp)
-            )
+            if (radio.favicon.isNotBlank()) {
+
+                AsyncImage(
+                    model = radio.favicon,
+                    contentDescription = radio.name,
+                    modifier = Modifier.size(65.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+            } else {
+
+                Text(
+                    text = "♪",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.size(65.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
