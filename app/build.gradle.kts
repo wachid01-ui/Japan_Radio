@@ -6,7 +6,14 @@ plugins {
 android {
     namespace = "com.ryota.japanradio"
     compileSdk = 36
+    compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
 
+kotlinOptions {
+    jvmTarget = "17"
+}
     defaultConfig {
         applicationId = "com.ryota.japanradio"
         minSdk = 24
