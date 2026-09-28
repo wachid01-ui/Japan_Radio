@@ -25,6 +25,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -165,9 +166,12 @@ fun JapanRadioScreen() {
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
 
-                items(radios) { radio ->
-                    RadioCard(radio)
-                }
+                items(
+                 items = radios,
+                 key = { radio -> radio.streamUrl }
+                  ) { radio ->
+                RadioCard(radio)
+}
             }
         }
     }
