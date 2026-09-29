@@ -120,7 +120,7 @@ fun JapanRadioScreen() {
         }
 
         // Untuk tes, hanya gunakan 1 radio
-        radios = stationList.take(1)
+        radios = stationList
 
     } catch (e: Exception) {
 
@@ -216,8 +216,7 @@ fun JapanRadioScreen() {
                 ) {
 
                     items(
-                        items = radios,
-                        key = { radio -> radio.streamUrl }
+                        items = radios
                     ) { radio ->
 
                         RadioCard(radio)
