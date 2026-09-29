@@ -34,5 +34,4 @@ dependencies {
 
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
-    implementation("androidx.media3:media3-exoplayer:1.8.0")
 }
