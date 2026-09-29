@@ -64,7 +64,36 @@ fun JapanRadioScreen() {
     var errorMessage by remember { mutableStateOf("") }
 
     LaunchedEffect(Unit) {
-    isLoading = false
+
+    try {
+
+        withContext(Dispatchers.IO) {
+
+            val url = URL(
+                "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=100"
+            )
+
+            val connection = url.openConnection() as HttpURLConnection
+
+            connection.connectTimeout = 15000
+            connection.readTimeout = 15000
+            connection.requestMethod = "GET"
+
+            try {
+                connection.responseCode
+            } finally {
+                connection.disconnect()
+            }
+        }
+
+    } catch (e: Exception) {
+
+        errorMessage = e.message ?: "Unknown error"
+
+    } finally {
+
+        isLoading = false
+    }
 }
      
     Column(
