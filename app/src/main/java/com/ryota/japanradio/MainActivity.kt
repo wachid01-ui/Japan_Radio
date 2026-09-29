@@ -67,7 +67,7 @@ fun JapanRadioScreen() {
 
     try {
 
-        val response = withContext(Dispatchers.IO) {
+        val stationList = withContext(Dispatchers.IO) {
 
             val url = URL(
                 "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=100"
@@ -81,9 +81,37 @@ fun JapanRadioScreen() {
 
             try {
 
-                connection.inputStream
+                val response = connection.inputStream
                     .bufferedReader()
                     .use { it.readText() }
+
+                val jsonArray = JSONArray(response)
+
+                val result = mutableListOf<RadioStation>()
+
+                for (i in 0 until jsonArray.length()) {
+
+                    val station = jsonArray.getJSONObject(i)
+
+                    val name = station.optString("name").trim()
+                    val streamUrl = station.optString("url_resolved").trim()
+                    val favicon = station.optString("favicon").trim()
+
+                    if (
+                        name.isNotEmpty() &&
+                        streamUrl.isNotEmpty()
+                    ) {
+                        result.add(
+                            RadioStation(
+                                name = name,
+                                streamUrl = streamUrl,
+                                favicon = favicon
+                            )
+                        )
+                    }
+                }
+
+                result
 
             } finally {
 
@@ -91,13 +119,15 @@ fun JapanRadioScreen() {
             }
         }
 
-        val jsonArray = JSONArray(response)
-
-        isLoading = false
+        // Untuk tes, hanya gunakan 1 radio
+        radios = stationList.take(1)
 
     } catch (e: Exception) {
 
         errorMessage = e.message ?: "Unknown error"
+
+    } finally {
+
         isLoading = false
     }
 }
