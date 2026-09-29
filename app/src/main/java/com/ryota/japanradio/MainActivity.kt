@@ -51,8 +51,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
       setContent {
-      Text("Japan Radio")
-          }
+    JapanRadioScreen()
+    }
     }
 }
 
