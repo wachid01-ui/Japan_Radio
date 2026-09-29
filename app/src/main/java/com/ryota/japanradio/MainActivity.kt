@@ -67,7 +67,7 @@ fun JapanRadioScreen() {
 
     try {
 
-        withContext(Dispatchers.IO) {
+        val response = withContext(Dispatchers.IO) {
 
             val url = URL(
                 "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=100"
@@ -80,18 +80,24 @@ fun JapanRadioScreen() {
             connection.requestMethod = "GET"
 
             try {
-                connection.responseCode
+
+                connection.inputStream
+                    .bufferedReader()
+                    .use { it.readText() }
+
             } finally {
+
                 connection.disconnect()
             }
         }
 
+        val jsonArray = JSONArray(response)
+
+        isLoading = false
+
     } catch (e: Exception) {
 
         errorMessage = e.message ?: "Unknown error"
-
-    } finally {
-
         isLoading = false
     }
 }
