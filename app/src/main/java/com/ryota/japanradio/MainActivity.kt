@@ -245,16 +245,14 @@ fun RadioCard(radio: RadioStation) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            if (radio.favicon.isNotEmpty()) {
-
-                AsyncImage(
-                    model = radio.favicon,
-                    contentDescription = radio.name,
-                    modifier = Modifier.size(65.dp),
-                    contentScale = ContentScale.Fit
-                )
-
-            } else {
+            Text(
+               text = radio.favicon,
+               modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(4.dp),
+               textAlign = TextAlign.Center,
+               maxLines = 2
+)
 
                 Text(
                     text = "♪",
