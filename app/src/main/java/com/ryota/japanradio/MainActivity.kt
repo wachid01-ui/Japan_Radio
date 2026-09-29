@@ -70,7 +70,7 @@ fun JapanRadioScreen() {
         val stationList = withContext(Dispatchers.IO) {
 
             val url = URL(
-                "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=100"
+                "https://de1.api.radio-browser.info/json/stations/bycountrycodeexact/JP?hidebroken=true&limit=150"
             )
 
             val connection = url.openConnection() as HttpURLConnection
