@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
@@ -244,12 +245,24 @@ fun RadioCard(radio: RadioStation) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            Text(
-                text = "♪",
-                style = MaterialTheme.typography.headlineLarge,
-                modifier = Modifier.size(65.dp),
-                textAlign = TextAlign.Center
-            )
+            if (radio.favicon.isNotEmpty()) {
+
+                AsyncImage(
+                    model = radio.favicon,
+                    contentDescription = radio.name,
+                    modifier = Modifier.size(65.dp),
+                    contentScale = ContentScale.Fit
+                )
+
+            } else {
+
+                Text(
+                    text = "♪",
+                    style = MaterialTheme.typography.headlineLarge,
+                    modifier = Modifier.size(65.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -262,4 +275,5 @@ fun RadioCard(radio: RadioStation) {
         }
     }
 }
+
 
