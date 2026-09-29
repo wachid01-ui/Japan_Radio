@@ -40,17 +40,6 @@ import org.json.JSONArray
 import java.net.HttpURLConnection
 import java.net.URL
 
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.compose.foundation.clickable
-
 data class RadioStation(
     val name: String,
     val streamUrl: String,
@@ -74,19 +63,7 @@ fun JapanRadioScreen() {
     var radios by remember { mutableStateOf<List<RadioStation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
-    var selectedRadio by remember { mutableStateOf<RadioStation?>(null) }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-
-    val player = remember {
-        ExoPlayer.Builder(context).build()
-    }
-
-DisposableEffect(Unit) {
-    onDispose {
-        player.release()
-    }
-}
     LaunchedEffect(Unit) {
 
     try {
@@ -231,50 +208,7 @@ DisposableEffect(Unit) {
 
             else -> {
 
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-
-            items(
-                items = radios
-            ) { radio ->
-
-                RadioCard(
-                    radio = radio,
-                    onClick = {
-
-                        selectedRadio = radio
-
-                        val mediaItem =
-                            MediaItem.fromUri(radio.streamUrl)
-
-                        player.setMediaItem(mediaItem)
-                        player.prepare()
-                        player.play()
-                    }
-                )
-            }
-        }
-
-        selectedRadio?.let { radio ->
-
-            AudioPlayer(
-                radio = radio,
-                player = player
-            )
-        }
-    }
-}
+                LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(8.dp),
@@ -286,20 +220,8 @@ DisposableEffect(Unit) {
                         items = radios
                     ) { radio ->
 
-                      RadioCard(
-                          radio = radio,
-                          onClick = {
-
-                              selectedRadio = radio
-
-                              val mediaItem = MediaItem.fromUri(radio.streamUrl)
-
-                              player.setMediaItem(mediaItem)
-                              player.prepare()
-                              player.play()
-                         }
-                      )
-                   }
+                        RadioCard(radio)
+                    }
                 }
             }
         }
@@ -307,97 +229,13 @@ DisposableEffect(Unit) {
 }
 
 @Composable
-
-    fun RadioCard(
-    radio: RadioStation,
-    onClick: () -> Unit
-    ) {
-      @Composable
-fun AudioPlayer(
-    radio: RadioStation,
-    player: ExoPlayer
-) {
-
-    var isPlaying by remember {
-        mutableStateOf(player.isPlaying)
-    }
-
-    LaunchedEffect(player) {
-
-        while (true) {
-
-            isPlaying = player.isPlaying
-
-            kotlinx.coroutines.delay(300)
-        }
-    }
+fun RadioCard(radio: RadioStation) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .height(145.dp)
     ) {
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Text(
-                text = radio.name,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(
-                modifier = Modifier.height(8.dp)
-            )
-
-            IconButton(
-                onClick = {
-
-                    if (player.isPlaying) {
-                        player.pause()
-                    } else {
-                        player.play()
-                    }
-
-                    isPlaying = player.isPlaying
-                },
-                modifier = Modifier.size(56.dp)
-            ) {
-
-                Icon(
-                    imageVector =
-                        if (isPlaying)
-                            Icons.Default.Pause
-                        else
-                            Icons.Default.PlayArrow,
-
-                    contentDescription =
-                        if (isPlaying)
-                            "Pause"
-                        else
-                            "Play",
-
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-        }
-    }
-}
-    Card(
-        modifier = Modifier
-             .fillMaxWidth()
-             .height(145.dp)
-             .clickable {
-                  onClick()
-             }
-        ) {
 
         Column(
             modifier = Modifier
@@ -425,5 +263,4 @@ fun AudioPlayer(
         }
     }
 }
-
 
