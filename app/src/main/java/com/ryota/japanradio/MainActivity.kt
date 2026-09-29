@@ -245,22 +245,12 @@ fun RadioCard(radio: RadioStation) {
             verticalArrangement = Arrangement.Center
         ) {
 
-            Text(
-               text = radio.favicon,
-               modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(4.dp),
-               textAlign = TextAlign.Center,
-               maxLines = 2
-)
-
-                Text(
-                    text = "♪",
-                    style = MaterialTheme.typography.headlineLarge,
-                    modifier = Modifier.size(65.dp),
-                    textAlign = TextAlign.Center
-                )
-            }
+            AsyncImage(
+                model = radio.favicon,
+                contentDescription = radio.name,
+                modifier = Modifier.size(65.dp),
+                contentScale = ContentScale.Fit
+            )
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -272,5 +262,6 @@ fun RadioCard(radio: RadioStation) {
             )
         }
     }
+}
 
 
