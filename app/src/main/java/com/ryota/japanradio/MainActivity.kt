@@ -1,9 +1,11 @@
 package com.ryota.japanradio
 
+import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,14 +15,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +68,57 @@ fun JapanRadioScreen() {
     var radios by remember { mutableStateOf<List<RadioStation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf("") }
+    var currentRadio by remember { mutableStateOf<RadioStation?>(null) }
+    var isPlaying by remember { mutableStateOf(false) }
+    var isPreparing by remember { mutableStateOf(false) }
+    var playerError by remember { mutableStateOf("") }
+    val player = remember { MediaPlayer() }
+
+    DisposableEffect(player) {
+        onDispose { player.release() }
+    }
+
+    fun playRadio(radio: RadioStation) {
+        playerError = ""
+        try {
+            if (currentRadio?.streamUrl == radio.streamUrl && player.isPlaying) {
+                player.pause()
+                isPlaying = false
+                return
+            }
+            if (currentRadio?.streamUrl == radio.streamUrl && !isPreparing) {
+                player.start()
+                isPlaying = true
+                return
+            }
+
+            player.reset()
+            currentRadio = radio
+            isPlaying = false
+            isPreparing = true
+            player.setDataSource(radio.streamUrl)
+            player.setOnPreparedListener {
+                isPreparing = false
+                it.start()
+                isPlaying = true
+            }
+            player.setOnCompletionListener {
+                it.seekTo(0)
+                isPlaying = false
+            }
+            player.setOnErrorListener { _, _, _ ->
+                isPreparing = false
+                isPlaying = false
+                playerError = "Stream tidak dapat diputar. Coba radio lain."
+                true
+            }
+            player.prepareAsync()
+        } catch (e: Exception) {
+            isPreparing = false
+            isPlaying = false
+            playerError = e.message ?: "Stream tidak dapat diputar."
+        }
+    }
 
     LaunchedEffect(Unit) {
 
@@ -151,12 +207,28 @@ fun JapanRadioScreen() {
             textAlign = TextAlign.Center
         )
 
+        currentRadio?.let { radio ->
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Sedang dipilih: ${radio.name}", style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                Text(
+                    text = playerError.ifEmpty { if (isPreparing) "Memuat stream..." else if (isPlaying) "Sedang diputar" else "Dijeda" },
+                    style = MaterialTheme.typography.bodySmall
+                )
+                Button(onClick = { playRadio(radio) }, enabled = !isPreparing && playerError.isEmpty()) {
+                    Text(if (isPlaying) "Jeda" else "Putar")
+                }
+            }
+        }
+
         when {
 
             isLoading -> {
 
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -173,7 +245,7 @@ fun JapanRadioScreen() {
 
                 Column(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .weight(1f)
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
@@ -197,7 +269,7 @@ fun JapanRadioScreen() {
             radios.isEmpty() -> {
 
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -210,7 +282,7 @@ fun JapanRadioScreen() {
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -220,7 +292,7 @@ fun JapanRadioScreen() {
                         items = radios
                     ) { radio ->
 
-                        RadioCard(radio)
+                        RadioCard(radio, currentRadio?.streamUrl == radio.streamUrl, ::playRadio)
                     }
                 }
             }
@@ -229,12 +301,13 @@ fun JapanRadioScreen() {
 }
 
 @Composable
-fun RadioCard(radio: RadioStation) {
+fun RadioCard(radio: RadioStation, isSelected: Boolean, onClick: () -> Unit) {
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(145.dp)
+            .clickable(onClick = onClick)
     ) {
 
         Column(
@@ -260,7 +333,10 @@ fun RadioCard(radio: RadioStation) {
                 textAlign = TextAlign.Center,
                 maxLines = 2
             )
+
+            if (isSelected) {
+                Text("Dipilih", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
         }
     }
 }
-
