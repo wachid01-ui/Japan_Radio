@@ -34,4 +34,7 @@ dependencies {
 
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.3.0")
+    
+    // JSON parsing library (sudah termasuk di Android API, tapi lebih baik eksplisit)
+    implementation("org.json:json:20231013")
 }
