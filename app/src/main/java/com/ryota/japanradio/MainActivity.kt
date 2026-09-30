@@ -24,6 +24,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -57,7 +58,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            JapanRadioScreen()
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                JapanRadioScreen()
+            }
         }
     }
 }
@@ -87,6 +93,9 @@ fun JapanRadioScreen() {
 
     DisposableEffect(Unit) {
         onDispose {
+            if (mediaPlayer.isPlaying) {
+                mediaPlayer.stop()
+            }
             mediaPlayer.release()
         }
     }
@@ -146,7 +155,7 @@ fun JapanRadioScreen() {
             isPreparing = false
             isPrepared = false
             isPlaying = false
-            playerError = "Stream tidak dapat diputar."
+            playerError = "Stream tidak dapat diputar: ${e.message}"
         }
     }
 
@@ -217,39 +226,69 @@ fun JapanRadioScreen() {
             textAlign = TextAlign.Center
         )
 
-        currentRadio?.let { radio ->
+        // PLAYER SECTION - ALWAYS VISIBLE (FIX: ini yang bermasalah!)
+        if (currentRadio != null) {
+            currentRadio?.let { radio ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Now Playing:",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+
+                    Text(
+                        text = radio.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+
+                    Text(
+                        text = when {
+                            playerError.isNotEmpty() -> playerError
+                            isPreparing -> "Memuat stream..."
+                            isPlaying -> "▶ Sedang diputar"
+                            else -> "⏸ Dijeda"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+
+                    Button(
+                        onClick = { playRadio(radio) },
+                        enabled = !isPreparing,
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text(if (isPlaying) "⏸ Jeda" else "▶ Putar")
+                    }
+                }
+            }
+        } else {
+            // PLACEHOLDER PLAYER WHEN NO STATION SELECTED
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = radio.name,
-                    style = MaterialTheme.typography.titleSmall,
+                    text = "Pilih stasiun radio untuk mulai mendengarkan",
+                    style = MaterialTheme.typography.bodySmall,
                     textAlign = TextAlign.Center,
-                    maxLines = 1
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                Text(
-                    text = when {
-                        playerError.isNotEmpty() -> playerError
-                        isPreparing -> "Memuat stream..."
-                        isPlaying -> "Sedang diputar"
-                        else -> "Dijeda"
-                    },
-                    style = MaterialTheme.typography.bodySmall
-                )
-
-                Button(
-                    onClick = { playRadio(radio) },
-                    enabled = !isPreparing
-                ) {
-                    Text(if (isPlaying) "Jeda" else "Putar")
-                }
             }
         }
 
+        // CONTENT SECTION - LOADING / ERROR / STATIONS LIST
         when {
             isLoading -> {
                 Column(
@@ -261,7 +300,7 @@ fun JapanRadioScreen() {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Text("Loading radio stations...")
+                    Text("Memuat stasiun radio...")
                 }
             }
 
@@ -274,7 +313,7 @@ fun JapanRadioScreen() {
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Failed to load radio stations",
+                        text = "Gagal memuat stasiun radio",
                         style = MaterialTheme.typography.titleMedium,
                         textAlign = TextAlign.Center
                     )
@@ -283,7 +322,8 @@ fun JapanRadioScreen() {
 
                     Text(
                         text = errorMessage,
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -294,7 +334,7 @@ fun JapanRadioScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text("No radio stations found.")
+                    Text("Tidak ada stasiun radio yang ditemukan.")
                 }
             }
 
@@ -329,12 +369,17 @@ fun RadioCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(145.dp)
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        shape = androidx.compose.material3.RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(8.dp)
+                .background(
+                    if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                    else Color.Transparent
+                ),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -356,9 +401,10 @@ fun RadioCard(
 
             if (isSelected) {
                 Text(
-                    text = "Dipilih",
+                    text = "▶ Playing",
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
         }
