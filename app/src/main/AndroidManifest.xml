@@ -5,7 +5,7 @@
 
     <application
         android:allowBackup="true"
-        android:label="Japan Radio"
+        android:label=""
         android:supportsRtl="true">
 
         <activity
