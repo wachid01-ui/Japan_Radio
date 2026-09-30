@@ -217,14 +217,7 @@ fun JapanRadioScreen() {
             .fillMaxSize()
             .background(Color.White)
     ) {
-        Text(
-            text = "Japan Radio",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp, bottom = 16.dp),
-            textAlign = TextAlign.Center
-        )
+        // header title removed
 
         // PLAYER SECTION - ALWAYS VISIBLE
         if (currentRadio != null) {
@@ -271,7 +264,6 @@ fun JapanRadioScreen() {
                 }
             }
         } else {
-            // PLACEHOLDER PLAYER WHEN NO STATION SELECTED
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -288,7 +280,6 @@ fun JapanRadioScreen() {
             }
         }
 
-        // CONTENT SECTION - LOADING / ERROR / STATIONS LIST
         when {
             isLoading -> {
                 Column(
