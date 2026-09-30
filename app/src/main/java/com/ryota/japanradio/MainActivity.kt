@@ -226,7 +226,7 @@ fun JapanRadioScreen() {
             textAlign = TextAlign.Center
         )
 
-        // PLAYER SECTION - ALWAYS VISIBLE (FIX: ini yang bermasalah!)
+        // PLAYER SECTION - ALWAYS VISIBLE
         if (currentRadio != null) {
             currentRadio?.let { radio ->
                 Column(
@@ -369,8 +369,7 @@ fun RadioCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(145.dp)
-            .clickable(onClick = onClick),
-        shape = androidx.compose.material3.RoundedCornerShape(8.dp)
+            .clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier
